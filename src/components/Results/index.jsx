@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import SchoolCard      from './SchoolCard.jsx';
 import ComparisonTable from './ComparisonTable.jsx';
+import ChatBot         from './ChatBot.jsx';
 import { categoryColors, categoryLabel } from '../../utils/formatters.js';
 
 const CATEGORY_ORDER = ['reach', 'target', 'safety'];
@@ -146,6 +147,9 @@ export default function Results({ schools, userProfile, onReset }) {
           />
         )}
       </div>
+
+      {/* AI Chatbot — floating panel */}
+      <ChatBot userProfile={userProfile} schools={schools} />
     </div>
   );
 }

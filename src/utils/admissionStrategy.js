@@ -67,6 +67,86 @@ export function getProbabilities(school, userProfile, deadlines) {
   }));
 }
 
+// ── Merit Scholarship Estimation ─────────────────────────────────────────
+
+export function getMeritScholarship(school, userProfile) {
+  const { sat, act, gpa, gpaType } = userProfile;
+  const userSAT = sat ? parseInt(sat) : act ? actToSAT(parseInt(act)) : null;
+  const normGPA = normalizeGPA(gpa, gpaType);
+  const ownership = school['school.ownership']; // 1=public, 2=private, 3=for-profit
+  const acceptRate = school['latest.admissions.admission_rate.overall'];
+
+  // For-profit schools: no meaningful merit aid
+  if (ownership === 3) return { likelihood: 'Unlikely', estimate: null, note: 'For-profit colleges rarely offer merit aid.' };
+
+  // Highly selective schools (<15%) rarely give merit aid — they don't need to recruit
+  if (acceptRate != null && acceptRate < 0.15) {
+    return { likelihood: 'Rare', estimate: null, note: 'Elite schools rarely offer merit scholarships — financial aid is need-based only.' };
+  }
+
+  const sat75 =
+    (school['latest.admissions.sat_scores.75th_percentile.critical_reading'] || 0) +
+    (school['latest.admissions.sat_scores.75th_percentile.math'] || 0);
+  const sat25 =
+    (school['latest.admissions.sat_scores.25th_percentile.critical_reading'] || 0) +
+    (school['latest.admissions.sat_scores.25th_percentile.math'] || 0);
+  const satMid = sat25 && sat75 ? (sat25 + sat75) / 2 : null;
+
+  // How far above the school's midpoint is the student?
+  const scoreGap = userSAT && satMid ? userSAT - satMid : 0;
+  const gpaStrong = normGPA >= 3.7;
+  const gpaVeryStrong = normGPA >= 3.9;
+
+  const outOfState = school['latest.cost.tuition.out_of_state'];
+  const inState    = school['latest.cost.tuition.in_state'];
+  const tuition    = outOfState || inState || 30000;
+
+  // Score well above midpoint + strong GPA = highest merit chance
+  if (scoreGap >= 150 && gpaVeryStrong) {
+    const low  = Math.round(tuition * 0.30 / 1000) * 1000;
+    const high = Math.round(tuition * 0.70 / 1000) * 1000;
+    return {
+      likelihood: 'Very Likely',
+      estimate: `$${low.toLocaleString()}–$${high.toLocaleString()}/yr`,
+      note: 'Your scores are well above this school\'s range. You are a strong merit scholarship candidate.',
+    };
+  }
+
+  if (scoreGap >= 80 && gpaStrong) {
+    const low  = Math.round(tuition * 0.15 / 1000) * 1000;
+    const high = Math.round(tuition * 0.45 / 1000) * 1000;
+    return {
+      likelihood: 'Likely',
+      estimate: `$${low.toLocaleString()}–$${high.toLocaleString()}/yr`,
+      note: 'Your profile is above their typical range, making you a competitive merit aid candidate.',
+    };
+  }
+
+  if (scoreGap >= 0 && gpaStrong) {
+    const low  = Math.round(tuition * 0.05 / 1000) * 1000;
+    const high = Math.round(tuition * 0.25 / 1000) * 1000;
+    return {
+      likelihood: 'Possible',
+      estimate: `$${low.toLocaleString()}–$${high.toLocaleString()}/yr`,
+      note: 'You may qualify for modest merit aid. Applying early can improve your chances.',
+    };
+  }
+
+  if (scoreGap < 0) {
+    return {
+      likelihood: 'Unlikely',
+      estimate: null,
+      note: 'Your scores are near or below their typical range. Merit aid is unlikely but financial need-based aid may still be available.',
+    };
+  }
+
+  return {
+    likelihood: 'Possible',
+    estimate: null,
+    note: 'Some merit aid may be available. Contact the admissions office for specifics.',
+  };
+}
+
 // ── Strategy Recommendation ───────────────────────────────────────────────
 
 export function getRecommendation(school, userProfile, deadlines) {

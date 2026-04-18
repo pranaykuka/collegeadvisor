@@ -6,7 +6,7 @@ import {
 } from '../../utils/formatters.js';
 import { formatDistance } from '../../services/distance.js';
 import { getDeadlines } from '../../data/deadlines.js';
-import { getProbabilities, getRecommendation } from '../../utils/admissionStrategy.js';
+import { getProbabilities, getRecommendation, getMeritScholarship } from '../../utils/admissionStrategy.js';
 
 export default function SchoolCard({ school, userProfile, selected, onToggleCompare }) {
   const [showStrategy, setShowStrategy] = useState(false);
@@ -17,9 +17,22 @@ export default function SchoolCard({ school, userProfile, selected, onToggleComp
   const url    = school['school.school_url'];
   const nonWhitePct = Math.round(diversityIndex(school) * 100);
 
-  const deadlines    = getDeadlines(school['school.name']);
-  const probabilities = getProbabilities(school, userProfile, deadlines);
+  const deadlines      = getDeadlines(school['school.name']);
+  const probabilities  = getProbabilities(school, userProfile, deadlines);
   const recommendation = getRecommendation(school, userProfile, deadlines);
+  const merit          = getMeritScholarship(school, userProfile);
+
+  const rdPct = Math.round((school._rdProb ?? 0) * 100);
+  const rdColor =
+    rdPct >= 60 ? 'bg-green-500'  :
+    rdPct >= 35 ? 'bg-blue-500'   :
+    rdPct >= 15 ? 'bg-amber-500'  :
+                  'bg-red-500';
+  const rdTextColor =
+    rdPct >= 60 ? 'text-green-700'  :
+    rdPct >= 35 ? 'text-blue-700'   :
+    rdPct >= 15 ? 'text-amber-700'  :
+                  'text-red-700';
 
   return (
     <div className={`rounded-xl border-2 ${colors.border} ${colors.bg} overflow-hidden shadow-sm hover:shadow-md transition-shadow`}>
@@ -51,6 +64,42 @@ export default function SchoolCard({ school, userProfile, selected, onToggleComp
           <p className="text-sm text-slate-500 mt-0.5">
             {school['school.city']}, {school['school.state']}
           </p>
+        </div>
+
+        {/* Admission probability bar — always visible */}
+        <div className="bg-white rounded-lg px-3 py-2.5 border border-slate-200">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs font-semibold text-slate-500">Your Admission Chance (RD)</span>
+            <span className={`text-base font-extrabold ${rdTextColor}`}>{rdPct}%</span>
+          </div>
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${rdColor}`} style={{ width: `${rdPct}%` }} />
+          </div>
+        </div>
+
+        {/* Merit scholarship badge */}
+        <div className={`flex items-start gap-2 rounded-lg px-3 py-2 border ${
+          merit.likelihood === 'Very Likely' ? 'bg-green-50 border-green-200' :
+          merit.likelihood === 'Likely'      ? 'bg-blue-50 border-blue-200'  :
+          merit.likelihood === 'Possible'    ? 'bg-amber-50 border-amber-200':
+                                               'bg-slate-50 border-slate-200'
+        }`}>
+          <span className="text-lg leading-none mt-0.5">🏅</span>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-700">Merit Scholarship</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                merit.likelihood === 'Very Likely' ? 'bg-green-200 text-green-800' :
+                merit.likelihood === 'Likely'      ? 'bg-blue-200 text-blue-800'   :
+                merit.likelihood === 'Possible'    ? 'bg-amber-200 text-amber-800' :
+                                                     'bg-slate-200 text-slate-600'
+              }`}>{merit.likelihood}</span>
+              {merit.estimate && (
+                <span className="text-xs font-bold text-slate-800">{merit.estimate}</span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5 leading-snug">{merit.note}</p>
+          </div>
         </div>
 
         {/* Badges */}
