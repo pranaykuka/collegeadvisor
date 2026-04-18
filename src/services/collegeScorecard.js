@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { haversineDistanceMiles, estimateFlightHours } from './distance.js';
 import { classifySchool, actToSAT } from '../utils/classify.js';
+import { estimateProbability } from '../utils/admissionStrategy.js';
 
 const BASE_URL = 'https://api.data.gov/ed/collegescorecard/v1/schools';
 
@@ -102,6 +103,25 @@ const SIZE_BOUNDS = {
   'Very Large': [30000, 500000],
 };
 
+// Composite prestige score (0–1) used as a ranking proxy.
+// Weights: selectivity 45%, academic strength (SAT) 35%, outcomes (earnings) 20%.
+function computeRankScore(school) {
+  const acceptRate = school['latest.admissions.admission_rate.overall'];
+  const satAvg     = school['latest.admissions.sat_scores.average.overall'];
+  const earnings   = school['latest.earnings.10_yrs_after_entry.median'];
+
+  // Selectivity: invert accept rate — lower = more prestigious. Missing → neutral 0.5.
+  const selectivity = acceptRate != null ? 1 - acceptRate : 0.5;
+
+  // SAT: normalize 400–1600 → 0–1. Missing → neutral 0.5.
+  const satScore = satAvg != null ? Math.min(Math.max((satAvg - 400) / 1200, 0), 1) : 0.5;
+
+  // Earnings: normalize $20k–$100k → 0–1. Missing → neutral 0.4.
+  const earningsScore = earnings != null ? Math.min(Math.max((earnings - 20000) / 80000, 0), 1) : 0.4;
+
+  return selectivity * 0.45 + satScore * 0.35 + earningsScore * 0.20;
+}
+
 async function queryAPI(acceptRateRange, satRange, ownershipFilter, apiKey) {
   const params = {
     api_key: apiKey,
@@ -147,14 +167,18 @@ export async function fetchColleges(profile, addLog = () => {}) {
   // Convert score to SAT for range calculations
   const userSAT = sat ? parseInt(sat) : act ? actToSAT(parseInt(act)) : null;
 
-  // SAT ranges per bucket (generous overlap so borderline schools appear in both).
-  // null = no SAT filter (user chose "None" for test type — use acceptance rate only).
-  const satReach  = userSAT ? `${Math.min(userSAT + 50, 1600)}..1600`                            : null;
-  const satTarget = userSAT ? `${Math.max(userSAT - 200, 400)}..${Math.min(userSAT + 200, 1600)}` : null;
-  const satSafety = userSAT ? `400..${Math.min(userSAT + 200, 1600)}`                             : null;
+  // SAT ranges per bucket.
+  // Reach: NO SAT filter — acceptance rate (0–35%) already ensures selectivity.
+  //   A 1600 SAT student still gets reach schools like Harvard (avg SAT ~1515)
+  //   because those schools reject 96%+ of applicants regardless of test scores.
+  //   Adding a SAT floor would incorrectly exclude elite schools for top scorers.
+  // Target/Safety: SAT filter narrows to academically similar schools.
+  const satReach  = null;
+  const satTarget = userSAT ? `${Math.max(userSAT - 200, 400)}..${Math.min(userSAT + 150, 1600)}` : null;
+  const satSafety = userSAT ? `400..${Math.min(userSAT + 50,  1600)}`                             : null;
 
   if (userSAT) {
-    addLog(`  SAT ranges — reach: ${satReach} | target: ${satTarget} | safety: ${satSafety}`);
+    addLog(`  SAT filters — reach: none (accept rate only) | target: ${satTarget} | safety: ${satSafety}`);
   } else {
     addLog('  No test score provided — using acceptance rate only');
   }
@@ -192,18 +216,22 @@ export async function fetchColleges(profile, addLog = () => {}) {
 
   const majorField = MAJOR_FIELD_MAP[major] || null;
 
+  const userProfile = { sat, act, gpa, gpaType };
+
   const enriched = allTagged.map(school => {
-    const dist = haversineDistanceMiles(lat, lon, school['location.lat'], school['location.lon']);
-    const category = classifySchool(school, { sat, act, gpa, gpaType });
+    const dist     = haversineDistanceMiles(lat, lon, school['location.lat'], school['location.lon']);
+    const category = classifySchool(school, userProfile);
     const majorScore = majorField ? (school[majorField] || 0) : 0;
-    return { ...school, _distance: dist, _category: category, _majorScore: majorScore };
+    const rdProb   = estimateProbability(school, userProfile, 'RD') ?? 0;
+    const rankScore = computeRankScore(school);
+    return { ...school, _distance: dist, _category: category, _majorScore: majorScore, _rdProb: rdProb, _rankScore: rankScore };
   });
 
-  const sample = enriched.slice(0, 3).map(s => `${s['school.name']} (${Math.round(s._distance)} mi, ${s._category})`);
+  const sample = enriched.slice(0, 3).map(s => `${s['school.name']} (rank=${s._rankScore.toFixed(2)}, prob=${Math.round(s._rdProb * 100)}%)`);
   addLog(`  Sample schools: ${sample.join(' | ')}`);
 
-  // Sort by major strength desc, then distance asc within each category
-  enriched.sort((a, b) => b._majorScore - a._majorScore || a._distance - b._distance);
+  // Primary sort: prestige/rank score desc. Secondary: admission probability desc.
+  enriched.sort((a, b) => b._rankScore - a._rankScore || b._rdProb - a._rdProb);
 
   // Apply distance + size filters; fall back if nothing passes
   let filtered = enriched.filter(s => s._distance <= maxTotalMiles && sizeFilter(s));
