@@ -94,14 +94,15 @@ const FIELDS = [
   'latest.academics.program_percentage.architecture',
 ].join(',');
 
-const SIZE_RANGES = {
-  'Small':      '1..4999',
-  'Medium':     '5000..14999',
-  'Large':      '15000..29999',
-  'Very Large': '30000..500000',
+// Used for client-side filtering when multiple sizes are selected
+const SIZE_BOUNDS = {
+  'Small':      [1,     4999],
+  'Medium':     [5000,  14999],
+  'Large':      [15000, 29999],
+  'Very Large': [30000, 500000],
 };
 
-async function queryAPI(acceptRateRange, satRange, sizeFilter, ownershipFilter, apiKey) {
+async function queryAPI(acceptRateRange, satRange, ownershipFilter, apiKey) {
   const params = {
     api_key: apiKey,
     'school.operating': 1,
@@ -111,8 +112,7 @@ async function queryAPI(acceptRateRange, satRange, sizeFilter, ownershipFilter, 
     per_page: 100,
   };
   // SAT range is optional — omitting it includes test-optional schools too
-  if (satRange) params['latest.admissions.sat_scores.average.overall__range'] = satRange;
-  if (sizeFilter)      params['latest.student.size__range'] = sizeFilter;
+  if (satRange)        params['latest.admissions.sat_scores.average.overall__range'] = satRange;
   if (ownershipFilter) params['school.ownership'] = ownershipFilter;
 
   const res = await axios.get(BASE_URL, { params });
@@ -132,8 +132,17 @@ export async function fetchColleges(profile, addLog = () => {}) {
     throw new Error('API key missing. Please add VITE_COLLEGE_SCORECARD_API_KEY to your .env file.');
   }
 
-  const sizeFilter      = SIZE_RANGES[schoolSize] || null;
   const ownershipFilter = publicPrivate === 'Public only' ? 1 : publicPrivate === 'Private only' ? 2 : null;
+
+  // Size is now filtered client-side so multiple selections work correctly
+  const selectedSizes = Array.isArray(schoolSize) ? schoolSize : (schoolSize ? [schoolSize] : []);
+  const sizeFilter = selectedSizes.length > 0
+    ? s => selectedSizes.some(sz => {
+        const [min, max] = SIZE_BOUNDS[sz];
+        const n = s['latest.student.size'];
+        return n != null && n >= min && n <= max;
+      })
+    : () => true;
 
   // Convert score to SAT for range calculations
   const userSAT = sat ? parseInt(sat) : act ? actToSAT(parseInt(act)) : null;
@@ -154,9 +163,9 @@ export async function fetchColleges(profile, addLog = () => {}) {
   // Schools that report no SAT average (test-optional) won't appear when satRange is set —
   // that's intentional: the user gave a test score, so SAT-reportng schools are preferred.
   const [rawReach, rawTarget, rawSafety] = await Promise.all([
-    queryAPI('0..0.35',    satReach,  sizeFilter, ownershipFilter, apiKey),
-    queryAPI('0.20..0.75', satTarget, sizeFilter, ownershipFilter, apiKey),
-    queryAPI('0.55..1.0',  satSafety, sizeFilter, ownershipFilter, apiKey),
+    queryAPI('0..0.35',    satReach,  ownershipFilter, apiKey),
+    queryAPI('0.20..0.75', satTarget, ownershipFilter, apiKey),
+    queryAPI('0.55..1.0',  satSafety, ownershipFilter, apiKey),
   ]);
 
   addLog(`✓ API returned — reach bucket: ${rawReach.length} | target bucket: ${rawTarget.length} | safety bucket: ${rawSafety.length}`);
@@ -196,12 +205,12 @@ export async function fetchColleges(profile, addLog = () => {}) {
   // Sort by major strength desc, then distance asc within each category
   enriched.sort((a, b) => b._majorScore - a._majorScore || a._distance - b._distance);
 
-  // Apply distance filter; if it removes everything, fall back to closest schools
-  let filtered = enriched.filter(s => s._distance <= maxTotalMiles);
-  addLog(`  After distance filter: ${filtered.length} schools remain`);
+  // Apply distance + size filters; fall back if nothing passes
+  let filtered = enriched.filter(s => s._distance <= maxTotalMiles && sizeFilter(s));
+  addLog(`  After distance + size filter: ${filtered.length} schools remain`);
 
   if (filtered.length === 0) {
-    addLog('⚠ Distance filter removed all schools — showing closest schools regardless of distance');
+    addLog('⚠ Filters removed all schools — showing closest schools regardless of size/distance');
     filtered = [...enriched].sort((a, b) => a._distance - b._distance).slice(0, 20);
     filtered = filtered.map(s => ({ ...s, _outsideRange: true }));
   }

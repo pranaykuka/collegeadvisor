@@ -11,7 +11,7 @@ const DEFAULTS = {
   // Step 2
   zipCode: '', maxDriveDistance: 500, maxFlightHours: '',
   // Step 3
-  major: 'Undecided', schoolSize: '', publicPrivate: '',
+  major: 'Undecided', schoolSize: [], publicPrivate: '',
 };
 
 function validate(step, data) {
