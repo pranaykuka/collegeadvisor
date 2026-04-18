@@ -110,7 +110,7 @@ export default function SchoolCard({ school, userProfile, selected, onToggleComp
         </div>
 
         {/* Key metrics grid */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 xs:grid-cols-2 gap-3">
           <Metric label="Acceptance Rate"       value={fmtPercent(school['latest.admissions.admission_rate.overall'])} />
           <Metric label="Enrollment"             value={fmtSize(school['latest.student.size'])} />
           <Metric label="SAT Range"              value={fmtSATRange(school)} />

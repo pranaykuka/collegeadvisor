@@ -8,7 +8,7 @@ export default function Step1Academic({ data, onChange }) {
       {/* GPA */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">GPA</label>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <input
             type="number"
             step="0.01"
@@ -22,7 +22,7 @@ export default function Step1Academic({ data, onChange }) {
           <select
             value={data.gpaType}
             onChange={e => set('gpaType', e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+            className="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none"
           >
             <option value="unweighted">Unweighted (0–4.0)</option>
             <option value="weighted">Weighted (0–5.0)</option>

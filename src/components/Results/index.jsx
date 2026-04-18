@@ -2,11 +2,12 @@ import { useState } from 'react';
 import SchoolCard      from './SchoolCard.jsx';
 import ComparisonTable from './ComparisonTable.jsx';
 import ChatBot         from './ChatBot.jsx';
+import Footer          from '../UI/Footer.jsx';
 import { categoryColors, categoryLabel } from '../../utils/formatters.js';
 
 const CATEGORY_ORDER = ['reach', 'target', 'safety'];
 
-export default function Results({ schools, userProfile, onReset }) {
+export default function Results({ schools, userProfile, onReset, onDisclaimer }) {
   const [view, setView]           = useState('cards'); // 'cards' | 'compare'
   const [compareList, setCompare] = useState([]);
 
@@ -29,24 +30,24 @@ export default function Results({ schools, userProfile, onReset }) {
   return (
     <div className="min-h-screen">
       {/* Top bar */}
-      <div className="bg-slate-900 text-white px-6 py-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-4 justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🎓</span>
-            <div>
-              <h1 className="font-bold text-lg leading-none">College Advisor</h1>
-              <p className="text-slate-400 text-xs mt-0.5">
+      <div className="bg-slate-900 text-white px-4 py-3 shadow-lg">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl flex-shrink-0">🎓</span>
+            <div className="min-w-0">
+              <h1 className="font-bold text-base leading-none">College Advisor</h1>
+              <p className="text-slate-400 text-xs mt-0.5 truncate max-w-[260px] sm:max-w-none">
                 GPA {userProfile.gpa} {userProfile.gpaType} ·{' '}
-                {userProfile.sat ? `SAT ${userProfile.sat}` : userProfile.act ? `ACT ${userProfile.act}` : 'No test score'} ·{' '}
-                {userProfile.major} · within {userProfile.maxDriveDistance} mi
+                {userProfile.sat ? `SAT ${userProfile.sat}` : userProfile.act ? `ACT ${userProfile.act}` : 'No score'} ·{' '}
+                {userProfile.major}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-400">{totalCount} schools found</span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <span className="text-sm text-slate-400 hidden sm:inline">{totalCount} schools</span>
             <button
               onClick={onReset}
-              className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors"
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-medium transition-colors"
             >
               ← New Search
             </button>
@@ -54,7 +55,7 @@ export default function Results({ schools, userProfile, onReset }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Category summary pills */}
         <div className="flex flex-wrap gap-3 mb-6">
           {CATEGORY_ORDER.map(cat => {
@@ -99,6 +100,18 @@ export default function Results({ schools, userProfile, onReset }) {
               {compareList.length}/4 selected — switch to Compare Table to view
             </p>
           )}
+        </div>
+
+        {/* Disclaimer notice */}
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6 text-xs text-amber-800">
+          <span className="text-base leading-none mt-0.5">⚠️</span>
+          <p>
+            Admission probabilities and school classifications are estimates based on public data — not guarantees.
+            Many factors (essays, activities, recommendations) are not modeled.{' '}
+            <button onClick={onDisclaimer} className="underline font-semibold hover:text-amber-900">
+              Full Disclaimer
+            </button>
+          </p>
         </div>
 
         {/* Cards view */}
@@ -147,6 +160,9 @@ export default function Results({ schools, userProfile, onReset }) {
           />
         )}
       </div>
+
+      {/* Footer */}
+      <Footer onDisclaimer={onDisclaimer} />
 
       {/* AI Chatbot — floating panel */}
       <ChatBot userProfile={userProfile} schools={schools} />

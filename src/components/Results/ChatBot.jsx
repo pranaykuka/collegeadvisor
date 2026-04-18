@@ -114,7 +114,7 @@ export default function ChatBot({ userProfile, schools }) {
       {/* Floating toggle button */}
       <button
         onClick={() => setOpen(v => !v)}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-semibold text-sm transition-all ${
+        className={`fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg font-semibold text-sm transition-all ${
           open ? 'bg-slate-700 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
         }`}
         aria-label="Toggle AI advisor chat"
@@ -125,8 +125,8 @@ export default function ChatBot({ userProfile, schools }) {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-[26rem] max-w-[calc(100vw-2rem)] flex flex-col rounded-2xl shadow-2xl border border-slate-200 overflow-hidden bg-white"
-             style={{ height: '520px' }}>
+        <div className="fixed bottom-20 right-0 sm:right-6 z-50 w-full sm:w-[26rem] flex flex-col rounded-none sm:rounded-2xl shadow-2xl border-t sm:border border-slate-200 overflow-hidden bg-white"
+             style={{ height: '70vh', maxHeight: '520px' }}>
 
           {/* Header */}
           <div className="bg-indigo-600 px-4 py-3 flex items-center gap-2">

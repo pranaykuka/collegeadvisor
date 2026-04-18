@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import InputForm from './components/InputForm/index.jsx';
-import Results from './components/Results/index.jsx';
+import InputForm    from './components/InputForm/index.jsx';
+import Results      from './components/Results/index.jsx';
 import LoadingSpinner from './components/UI/LoadingSpinner.jsx';
+import Disclaimer   from './components/UI/Disclaimer.jsx';
 import { fetchColleges } from './services/collegeScorecard.js';
 import { getCoordinatesFromZip } from './services/distance.js';
 
 export default function App() {
-  const [view, setView]       = useState('form');
+  const [view, setView]         = useState('form');
+  const [prevView, setPrevView] = useState('form');
   const [schools, setSchools] = useState([]);
   const [userProfile, setProfile] = useState(null);
   const [error, setError]     = useState(null);
   const [debugLog, setDebugLog] = useState([]);
+
+  function openDisclaimer() {
+    setPrevView(view);
+    setView('disclaimer');
+  }
 
   function addLog(msg) {
     setDebugLog(prev => [...prev, msg]);
@@ -73,15 +80,20 @@ export default function App() {
     );
   }
 
+  if (view === 'disclaimer') {
+    return <Disclaimer onBack={() => setView(prevView)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-indigo-50">
-      {view === 'form'    && <InputForm onSubmit={handleSubmit} error={error} />}
+      {view === 'form'    && <InputForm onSubmit={handleSubmit} error={error} onDisclaimer={openDisclaimer} />}
       {view === 'loading' && <LoadingSpinner log={debugLog} />}
       {view === 'results' && (
         <Results
           schools={schools}
           userProfile={userProfile}
           onReset={() => { setView('form'); setError(null); setDebugLog([]); }}
+          onDisclaimer={openDisclaimer}
         />
       )}
     </div>

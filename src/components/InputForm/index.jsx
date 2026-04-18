@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Step1Academic    from './Step1Academic.jsx';
 import Step2Location    from './Step2Location.jsx';
 import Step3Preferences from './Step3Preferences.jsx';
+import Footer           from '../UI/Footer.jsx';
 
 const STEPS = ['Academic Profile', 'Location & Distance', 'School Preferences'];
 
@@ -37,7 +38,7 @@ function validate(step, data) {
   return null;
 }
 
-export default function InputForm({ onSubmit, error }) {
+export default function InputForm({ onSubmit, error, onDisclaimer }) {
   const [step, setStep]     = useState(0);
   const [data, setData]     = useState(DEFAULTS);
   const [stepErr, setStepErr] = useState(null);
@@ -72,7 +73,7 @@ export default function InputForm({ onSubmit, error }) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-xl">
         {/* Header */}
         <div className="text-center mb-8">
@@ -143,6 +144,9 @@ export default function InputForm({ onSubmit, error }) {
             US College Scorecard API
           </a>
         </p>
+      </div>
+      <div className="w-full max-w-xl">
+        <Footer onDisclaimer={onDisclaimer} />
       </div>
     </div>
   );

@@ -33,6 +33,8 @@ export default function ComparisonTable({ schools, userProfile, onRemove }) {
   }
 
   return (
+    <div>
+    <p className="text-xs text-slate-400 mb-2 sm:hidden">← Scroll sideways to see all schools →</p>
     <div className="overflow-x-auto rounded-xl shadow-sm border border-slate-200">
       <table className="w-full text-sm">
         <thead>
@@ -81,6 +83,7 @@ export default function ComparisonTable({ schools, userProfile, onRemove }) {
           </tr>
         </tbody>
       </table>
+    </div>
     </div>
   );
 }

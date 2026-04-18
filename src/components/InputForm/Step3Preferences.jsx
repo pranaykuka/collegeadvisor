@@ -87,7 +87,7 @@ export default function Step3Preferences({ data, onChange }) {
       {/* Public/Private */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-slate-700">School Type</label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {PP_OPTIONS.map(opt => (
             <button
               key={opt}
