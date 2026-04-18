@@ -221,11 +221,12 @@ export async function fetchColleges(profile, addLog = () => {}) {
   const enriched = allTagged.map(school => {
     const dist     = haversineDistanceMiles(lat, lon, school['location.lat'], school['location.lon']);
     const category = classifySchool(school, userProfile);
+    if (category === null) return null; // unrealistic for this student — exclude
     const majorScore = majorField ? (school[majorField] || 0) : 0;
     const rdProb   = estimateProbability(school, userProfile, 'RD') ?? 0;
     const rankScore = computeRankScore(school);
     return { ...school, _distance: dist, _category: category, _majorScore: majorScore, _rdProb: rdProb, _rankScore: rankScore };
-  });
+  }).filter(Boolean);
 
   const sample = enriched.slice(0, 3).map(s => `${s['school.name']} (rank=${s._rankScore.toFixed(2)}, prob=${Math.round(s._rdProb * 100)}%)`);
   addLog(`  Sample schools: ${sample.join(' | ')}`);
