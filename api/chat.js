@@ -24,7 +24,7 @@ function buildSystemPrompt(userProfile, schools) {
     sat, act, gpa, gpaType, major, schoolSize, publicPrivate,
     maxDriveDistance, maxFlightHours, zip,
     athleticRecruitment, hasLegacy, legacySchools, firstGen,
-    financialSituation, ecTier, demonstratedInterest, gender,
+    financialSituation, ecTier, gender,
   } = userProfile;
   const userSAT = sat ? parseInt(sat) : act ? actToSAT(parseInt(act)) : null;
   const normGPA = normalizeGPA(gpa, gpaType);
@@ -33,8 +33,6 @@ function buildSystemPrompt(userProfile, schools) {
   const athleticLabel = { d1: 'Division I recruited', d2: 'Division II recruited', d3: 'Division III / NAIA recruited' };
   const financialLabel = { need: 'Needs significant aid', partial: 'May need partial aid', fullpay: 'Can pay full tuition' };
   const ecLabel = { national: 'National-level achievement', state: 'State/regional award or leadership', school: 'School-level leadership', participant: 'Active participant', limited: 'Limited involvement' };
-  const diLabel = { virtual: 'Virtual info session', emailed: 'Emailed admissions' };
-  const di = Array.isArray(demonstratedInterest) ? demonstratedInterest : [];
 
   const schoolList = schools.map(s => {
     const sat25 = (s['latest.admissions.sat_scores.25th_percentile.critical_reading'] || 0) +
@@ -60,7 +58,6 @@ function buildSystemPrompt(userProfile, schools) {
 - First-generation student: ${firstGen === 'yes' ? 'Yes' : firstGen === 'no' ? 'No' : 'Not specified'}
 - Financial situation: ${financialSituation ? financialLabel[financialSituation] : 'Not specified'}
 - Extracurricular tier: ${ecTier ? ecLabel[ecTier] : 'Not specified'}
-- Demonstrated interest: ${di.length > 0 ? di.map(d => diLabel[d]).join(', ') : 'None specified'}
 - Gender: ${gender || 'Not specified'}
 
 ## Classification Algorithm (used to assign reach/target/safety)
@@ -103,7 +100,6 @@ Base accept rate × score multiplier × GPA multiplier × round multiplier × pr
   • First-generation: 1.25x
   • Full-pay at need-aware school (10–70% accept): 1.22x | Needs aid: 0.92x
   • EC tier: National → 1.4x | State → 1.2x | School leadership → 1.06x | Limited → 0.9x
-  • Demonstrated interest: +5% per action (capped at +12%)
   • Female in STEM major: 1.15x
   • Major difficulty: CS → 0.65x | Engineering → 0.70x | Business → 0.82x | Education → 1.10x (varies)
 - Probabilities are capped at 95% and smoothed above 70%

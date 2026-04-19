@@ -65,11 +65,7 @@ function getProfileMultiplier(school, userProfile) {
     mult *= ecMults[userProfile.ecTier];
   }
 
-  // 6. Demonstrated interest (small boost; only some schools track it)
-  const di = userProfile.demonstratedInterest || [];
-  if (di.length > 0) mult *= 1 + Math.min(di.length * 0.05, 0.12);
-
-  // 7. Gender — boost for women in STEM-heavy majors
+  // 6. Gender — boost for women in STEM-heavy majors
   if (userProfile.gender === 'female') {
     const stemMajors = ['Computer Science & Technology', 'Engineering', 'Mathematics & Statistics', 'Physical Sciences'];
     if (stemMajors.includes(userProfile.major)) mult *= 1.15;

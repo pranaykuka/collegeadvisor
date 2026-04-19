@@ -21,7 +21,6 @@ const DEFAULTS = {
   firstGen: '',
   financialSituation: '',
   ecTier: '',
-  demonstratedInterest: [],
   gender: '',
 };
 
@@ -85,7 +84,6 @@ export default function InputForm({ onSubmit, error, onDisclaimer }) {
       firstGen:             data.firstGen,
       financialSituation:   data.financialSituation,
       ecTier:               data.ecTier,
-      demonstratedInterest: data.demonstratedInterest,
       gender:               data.gender,
     });
   }

@@ -21,10 +21,6 @@ const EC_OPTIONS = [
   { value: 'limited',     label: 'Limited extracurricular involvement' },
 ];
 
-const DI_OPTIONS = [
-  { value: 'virtual',  label: 'Attended a virtual info session or webinar' },
-  { value: 'emailed',  label: 'Emailed or contacted the admissions office' },
-];
 
 const GENDER_OPTIONS = [
   { value: '',           label: 'Prefer not to say' },
@@ -68,15 +64,6 @@ function SectionHeader({ priority, color, children }) {
 
 export default function Step4Profile({ data, onChange }) {
   const set = (k, v) => onChange({ ...data, [k]: v });
-
-  function toggleDI(val) {
-    const current = data.demonstratedInterest || [];
-    if (current.includes(val)) {
-      set('demonstratedInterest', current.filter(v => v !== val));
-    } else {
-      set('demonstratedInterest', [...current, val]);
-    }
-  }
 
   return (
     <div className="space-y-8">
@@ -179,25 +166,6 @@ export default function Step4Profile({ data, onChange }) {
             value={data.ecTier || ''}
             onChange={v => set('ecTier', v)}
           />
-        </div>
-
-        {/* Demonstrated Interest */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">❤️ Demonstrated Interest</label>
-          <p className="text-xs text-slate-500">About 25% of schools formally track this — it can give a small boost. Check all that apply.</p>
-          <div className="space-y-2">
-            {DI_OPTIONS.map(opt => (
-              <label key={opt.value} className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={(data.demonstratedInterest || []).includes(opt.value)}
-                  onChange={() => toggleDI(opt.value)}
-                  className="accent-indigo-600 w-4 h-4 flex-shrink-0"
-                />
-                <span className="text-sm text-slate-700">{opt.label}</span>
-              </label>
-            ))}
-          </div>
         </div>
 
         {/* Gender */}
