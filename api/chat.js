@@ -33,7 +33,7 @@ function buildSystemPrompt(userProfile, schools) {
   const athleticLabel = { d1: 'Division I recruited', d2: 'Division II recruited', d3: 'Division III / NAIA recruited' };
   const financialLabel = { need: 'Needs significant aid', partial: 'May need partial aid', fullpay: 'Can pay full tuition' };
   const ecLabel = { national: 'National-level achievement', state: 'State/regional award or leadership', school: 'School-level leadership', participant: 'Active participant', limited: 'Limited involvement' };
-  const diLabel = { visited: 'Visited campus', virtual: 'Virtual info session', emailed: 'Emailed admissions' };
+  const diLabel = { virtual: 'Virtual info session', emailed: 'Emailed admissions' };
   const di = Array.isArray(demonstratedInterest) ? demonstratedInterest : [];
 
   const schoolList = schools.map(s => {

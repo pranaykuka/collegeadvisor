@@ -22,7 +22,6 @@ const EC_OPTIONS = [
 ];
 
 const DI_OPTIONS = [
-  { value: 'visited',  label: 'Visited campus in person' },
   { value: 'virtual',  label: 'Attended a virtual info session or webinar' },
   { value: 'emailed',  label: 'Emailed or contacted the admissions office' },
 ];
