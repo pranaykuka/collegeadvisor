@@ -1,5 +1,87 @@
 import { actToSAT, normalizeGPA } from './classify.js';
 
+// ── Major-Specific Difficulty Multipliers ─────────────────────────────────
+// Reflects that some departments are harder to get into than the school overall
+const MAJOR_DIFFICULTY = {
+  'Computer Science & Technology': 0.65,
+  'Engineering':                   0.70,
+  'Mathematics & Statistics':      0.80,
+  'Economics':                     0.82,
+  'Business & Finance':            0.82,
+  'Architecture':                  0.86,
+  'Biology & Pre-Med':             0.87,
+  'Physical Sciences':             0.88,
+  'Health Sciences & Nursing':     0.88,
+  'Visual & Performing Arts':      0.90,
+  'Political Science & Government':0.92,
+  'Communications & Media':        0.95,
+  'Psychology':                    0.95,
+  'Social Sciences':               0.98,
+  'Language & Literature':         1.00,
+  'Undecided':                     1.00,
+  'Philosophy & Religion':         1.05,
+  'Criminal Justice':              1.05,
+  'Education':                     1.10,
+};
+
+// ── Legacy School Matching ────────────────────────────────────────────────
+function hasLegacyMatch(school, legacySchools) {
+  if (!legacySchools) return false;
+  const schoolName = (school['school.name'] || '').toLowerCase();
+  return legacySchools.split(',').some(s => {
+    const term = s.trim().toLowerCase();
+    return term.length > 3 && schoolName.includes(term);
+  });
+}
+
+// ── Profile-Based Multipliers ─────────────────────────────────────────────
+function getProfileMultiplier(school, userProfile) {
+  let mult = 1.0;
+  const acceptRate = school['latest.admissions.admission_rate.overall'] ?? 0.5;
+
+  // 1. Athletic Recruitment
+  const athletic = userProfile.athleticRecruitment;
+  if (athletic === 'd1')  mult *= 5.0;
+  else if (athletic === 'd2')  mult *= 2.5;
+  else if (athletic === 'd3')  mult *= 1.8;
+
+  // 2. Legacy (only at matched school, meaningful at <60% acceptance)
+  if (userProfile.hasLegacy && hasLegacyMatch(school, userProfile.legacySchools)) {
+    mult *= acceptRate < 0.10 ? 1.4 : 1.65;
+  }
+
+  // 3. First-generation student
+  if (userProfile.firstGen === 'yes') mult *= 1.25;
+
+  // 4. Financial situation (only matters at need-aware schools: 10–70% accept rate)
+  if (acceptRate >= 0.10 && acceptRate <= 0.70) {
+    if (userProfile.financialSituation === 'fullpay') mult *= 1.22;
+    else if (userProfile.financialSituation === 'need') mult *= 0.92;
+  }
+
+  // 5. Extracurricular tier
+  const ecMults = { national: 1.40, state: 1.20, school: 1.06, participant: 1.0, limited: 0.90 };
+  if (userProfile.ecTier && ecMults[userProfile.ecTier]) {
+    mult *= ecMults[userProfile.ecTier];
+  }
+
+  // 6. Demonstrated interest (small boost; only some schools track it)
+  const di = userProfile.demonstratedInterest || [];
+  if (di.length > 0) mult *= 1 + Math.min(di.length * 0.05, 0.12);
+
+  // 7. Gender — boost for women in STEM-heavy majors
+  if (userProfile.gender === 'female') {
+    const stemMajors = ['Computer Science & Technology', 'Engineering', 'Mathematics & Statistics', 'Physical Sciences'];
+    if (stemMajors.includes(userProfile.major)) mult *= 1.15;
+  }
+
+  // 8. Major difficulty
+  const majorMult = MAJOR_DIFFICULTY[userProfile.major] ?? 1.0;
+  mult *= majorMult;
+
+  return mult;
+}
+
 // ── Probability Estimation ────────────────────────────────────────────────
 
 function getScoreMultiplier(school, userProfile) {
@@ -45,11 +127,12 @@ export function estimateProbability(school, userProfile, round) {
   const base = school['latest.admissions.admission_rate.overall'];
   if (base == null) return null;
 
-  const scoreMult = getScoreMultiplier(school, userProfile);
-  const gpaMult   = getGPAMultiplier(userProfile.gpa, userProfile.gpaType);
-  const roundMult = ROUND_MULTIPLIERS[round] ?? 1.0;
+  const scoreMult   = getScoreMultiplier(school, userProfile);
+  const gpaMult     = getGPAMultiplier(userProfile.gpa, userProfile.gpaType);
+  const roundMult   = ROUND_MULTIPLIERS[round] ?? 1.0;
+  const profileMult = getProfileMultiplier(school, userProfile);
 
-  const raw = base * scoreMult * gpaMult * roundMult;
+  const raw  = base * scoreMult * gpaMult * roundMult * profileMult;
   const prob = dimReturns(raw);
   return Math.min(Math.max(prob, 0.01), 0.95);
 }

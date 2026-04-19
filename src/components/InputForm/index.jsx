@@ -2,9 +2,10 @@ import { useState } from 'react';
 import Step1Academic    from './Step1Academic.jsx';
 import Step2Location    from './Step2Location.jsx';
 import Step3Preferences from './Step3Preferences.jsx';
+import Step4Profile     from './Step4Profile.jsx';
 import Footer           from '../UI/Footer.jsx';
 
-const STEPS = ['Academic Profile', 'Location & Distance', 'School Preferences'];
+const STEPS = ['Academic Profile', 'Location & Distance', 'School Preferences', 'Additional Profile'];
 
 const DEFAULTS = {
   // Step 1
@@ -13,6 +14,15 @@ const DEFAULTS = {
   zipCode: '', maxDriveDistance: 500, maxFlightHours: '',
   // Step 3
   major: 'Undecided', schoolSize: [], publicPrivate: '',
+  // Step 4 (all optional)
+  athleticRecruitment: '',
+  hasLegacy: false,
+  legacySchools: '',
+  firstGen: '',
+  financialSituation: '',
+  ecTier: '',
+  demonstratedInterest: [],
+  gender: '',
 };
 
 function validate(step, data) {
@@ -66,9 +76,17 @@ export default function InputForm({ onSubmit, error, onDisclaimer }) {
       zipCode:        data.zipCode,
       maxDriveDistance: parseFloat(data.maxDriveDistance),
       maxFlightHours:   data.maxFlightHours ? parseFloat(data.maxFlightHours) : null,
-      major:          data.major,
-      schoolSize:     data.schoolSize,
-      publicPrivate:  data.publicPrivate,
+      major:                data.major,
+      schoolSize:           data.schoolSize,
+      publicPrivate:        data.publicPrivate,
+      athleticRecruitment:  data.athleticRecruitment,
+      hasLegacy:            data.hasLegacy,
+      legacySchools:        data.legacySchools,
+      firstGen:             data.firstGen,
+      financialSituation:   data.financialSituation,
+      ecTier:               data.ecTier,
+      demonstratedInterest: data.demonstratedInterest,
+      gender:               data.gender,
     });
   }
 
@@ -98,6 +116,7 @@ export default function InputForm({ onSubmit, error, onDisclaimer }) {
           {step === 0 && <Step1Academic    data={data} onChange={setData} />}
           {step === 1 && <Step2Location    data={data} onChange={setData} />}
           {step === 2 && <Step3Preferences data={data} onChange={setData} />}
+          {step === 3 && <Step4Profile     data={data} onChange={setData} />}
 
           {/* Errors */}
           {(stepErr || error) && (

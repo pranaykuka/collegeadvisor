@@ -20,10 +20,21 @@ function normalizeGPA(gpa, type) {
 }
 
 function buildSystemPrompt(userProfile, schools) {
-  const { sat, act, gpa, gpaType, major, schoolSize, publicPrivate, maxDriveDistance, maxFlightHours, zip } = userProfile;
+  const {
+    sat, act, gpa, gpaType, major, schoolSize, publicPrivate,
+    maxDriveDistance, maxFlightHours, zip,
+    athleticRecruitment, hasLegacy, legacySchools, firstGen,
+    financialSituation, ecTier, demonstratedInterest, gender,
+  } = userProfile;
   const userSAT = sat ? parseInt(sat) : act ? actToSAT(parseInt(act)) : null;
   const normGPA = normalizeGPA(gpa, gpaType);
   const sizes = Array.isArray(schoolSize) ? schoolSize : (schoolSize ? [schoolSize] : []);
+
+  const athleticLabel = { d1: 'Division I recruited', d2: 'Division II recruited', d3: 'Division III / NAIA recruited' };
+  const financialLabel = { need: 'Needs significant aid', partial: 'May need partial aid', fullpay: 'Can pay full tuition' };
+  const ecLabel = { national: 'National-level achievement', state: 'State/regional award or leadership', school: 'School-level leadership', participant: 'Active participant', limited: 'Limited involvement' };
+  const diLabel = { visited: 'Visited campus', virtual: 'Virtual info session', emailed: 'Emailed admissions' };
+  const di = Array.isArray(demonstratedInterest) ? demonstratedInterest : [];
 
   const schoolList = schools.map(s => {
     const sat25 = (s['latest.admissions.sat_scores.25th_percentile.critical_reading'] || 0) +
@@ -44,6 +55,13 @@ function buildSystemPrompt(userProfile, schools) {
 - Location: ZIP ${zip || 'unknown'} | Max drive: ${maxDriveDistance} mi${maxFlightHours ? ` | Max flight: ${maxFlightHours} hrs` : ''}
 - Size preference: ${sizes.length > 0 ? sizes.join(', ') : 'No preference'}
 - School type: ${publicPrivate || 'No preference'}
+- Athletic recruitment: ${athleticRecruitment ? athleticLabel[athleticRecruitment] : 'Not applicable'}
+- Legacy: ${hasLegacy ? `Yes — ${legacySchools || 'schools not specified'}` : 'No'}
+- First-generation student: ${firstGen === 'yes' ? 'Yes' : firstGen === 'no' ? 'No' : 'Not specified'}
+- Financial situation: ${financialSituation ? financialLabel[financialSituation] : 'Not specified'}
+- Extracurricular tier: ${ecTier ? ecLabel[ecTier] : 'Not specified'}
+- Demonstrated interest: ${di.length > 0 ? di.map(d => diLabel[d]).join(', ') : 'None specified'}
+- Gender: ${gender || 'Not specified'}
 
 ## Classification Algorithm (used to assign reach/target/safety)
 Schools are classified by combining acceptance rate tiers with the student's SAT position in the school's 25th–75th percentile range.
@@ -74,10 +92,20 @@ Schools are classified by combining acceptance rate tiers with the student's SAT
 - Final list is capped at 20 schools, selected to balance 5 reach / 10 target / 5 safety
 
 **Admission probability formula:**
-Base accept rate × score multiplier × GPA multiplier × round multiplier
+Base accept rate × score multiplier × GPA multiplier × round multiplier × profile multiplier
+
 - Score multipliers: well above 75th → 1.6x | upper half → 1.2x | lower half → 0.9x | slightly below 25th → 0.55x | far below → 0.3x
 - GPA multipliers: ≥3.9 → 1.2x | ≥3.7 → 1.08x | ≥3.5 → 1.0x | ≥3.2 → 0.85x | ≥3.0 → 0.7x | below 3.0 → 0.5x
 - Round multipliers: ED1 → 1.9x | ED2 → 1.45x | EA → 1.15x | RD → 1.0x
+- Profile multipliers (stack multiplicatively):
+  • Athletic: D1 → 5.0x | D2 → 2.5x | D3 → 1.8x
+  • Legacy (matched school): <10% accept → 1.4x | else → 1.65x
+  • First-generation: 1.25x
+  • Full-pay at need-aware school (10–70% accept): 1.22x | Needs aid: 0.92x
+  • EC tier: National → 1.4x | State → 1.2x | School leadership → 1.06x | Limited → 0.9x
+  • Demonstrated interest: +5% per action (capped at +12%)
+  • Female in STEM major: 1.15x
+  • Major difficulty: CS → 0.65x | Engineering → 0.70x | Business → 0.82x | Education → 1.10x (varies)
 - Probabilities are capped at 95% and smoothed above 70%
 
 ## Schools in the Student's Current List
